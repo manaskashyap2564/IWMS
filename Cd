@@ -1,0 +1,147 @@
+Certainly! Below, I've provided code snippets for different components of the Industrial Water Quality Monitoring System, including the IoT sensor setup using Arduino for data acquisition, the ThingWorx integration, and example machine learning model implementations. Please replace the placeholders with your specific configurations, such as pins, application keys, and other relevant parameters.
+
+### Step 1: IoT Sensor Setup with Arduino
+
+This Arduino sketch demonstrates how to read from a pH sensor and turbidity sensor and send data to a ThingWorx server.
+
+```cpp
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+
+#define PH_SENSOR_PIN A0          // Pin for pH sensor input
+#define TURBIDITY_SENSOR_PIN A1   // Pin for turbidity sensor input
+
+const char *ssid = "YOUR_SSID";                // Your WiFi SSID
+const char *password = "YOUR_WIFI_PASSWORD";   // Your WiFi Password
+const char *thingworxURL = "https://YOUR_THINGWORX_URL/Thingworx/Things/YourThingName/Properties/"; // ThingWorx URL
+const char *appKey = "YOUR_APPLICATION_KEY";   // ThingWorx Application Key
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.begin(ssid, password);
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  Serial.println("Connected to WiFi");
+}
+
+void loop() {
+  float phValue = analogRead(PH_SENSOR_PIN) * (5.0 / 1023.0); // Convert ADC value to voltage
+  float turbidityValue = analogRead(TURBIDITY_SENSOR_PIN) * (5.0 / 1023.0);
+  
+  sendToThingWorx(phValue, turbidityValue);
+  
+  delay(10000); // Send data every 10 seconds
+}
+
+void sendToThingWorx(float pH, float turbidity) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    
+    String url = String(thingworxURL) + "pHValue"; // Assuming 'pHValue' is a property in ThingWorx
+    http.begin(url);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("appKey", appKey);
+    
+    String jsonPayload = String("{\"value\":") + pH + "}";
+    int httpResponseCode = http.POST(jsonPayload);
+    
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println(httpResponseCode);
+      Serial.println(response);
+    } else {
+      Serial.print("Error on sending POST: ");
+      Serial.println(httpResponseCode);
+    }
+    http.end();
+  }
+}
+```
+### Step 2: Machine Learning Model Implementation
+
+Below are examples of Python code snippets for different ML models focusing on predicting contamination levels based on water quality metrics. Make sure you have the necessary libraries installed (`pandas`, `scikit-learn`, etc.).
+
+#### Example: Linear Regression Model
+
+```python
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+
+# Load your cleaned data
+data = pd.read_csv('water_quality_data.csv')
+
+# Select features and target variable
+X = data[['pH', 'Turbidity', 'DissolvedOxygen']]  # Example features
+y = data['ContaminantLevel']  # Target variable
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize linear regression model
+model = LinearRegression()
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Make predictions
+predictions = model.predict(X_test)
+
+# Evaluate the model
+mse = mean_squared_error(y_test, predictions)
+print(f'Mean Squared Error: {mse}')
+```
+
+#### Example: Decision Tree Model
+
+```python
+from sklearn.tree import DecisionTreeRegressor
+
+# Initialize Decision Tree Regressor
+dt_model = DecisionTreeRegressor()
+
+# Train the model
+dt_model.fit(X_train, y_train)
+
+# Make predictions
+dt_predictions = dt_model.predict(X_test)
+
+# Evaluate the model
+dt_mse = mean_squared_error(y_test, dt_predictions)
+print(f'Mean Squared Error (Decision Tree): {dt_mse}')
+```
+
+#### Example: Random Forest Model
+
+```python
+from sklearn.ensemble import RandomForestRegressor
+
+# Initialize Random Forest Regressor
+rf_model = RandomForestRegressor()
+
+# Train the model
+rf_model.fit(X_train, y_train)
+
+# Make predictions
+rf_predictions = rf_model.predict(X_test)
+
+# Evaluate the model
+rf_mse = mean_squared_error(y_test, rf_predictions)
+print(f'Mean Squared Error (Random Forest): {rf_mse}')
+```
+
+### Notes:
+- **Replace Placeholders**: Make sure to replace placeholders in the Arduino code such as `YOUR_SSID`, `YOUR_WIFI_PASSWORD`, `YOUR_THINGWORX_URL`, and `YOUR_APPLICATION_KEY` with your actual values.
+- **Features and Target Variable**: Ensure that the features (`X`) and target variable (`y`) in the ML examples correspond to the columns in your dataset. You may need to adjust the names based on your actual dataset's structure.
+- **Environment Setup**: Before running these Python scripts, make sure you have an environment set up with essential libraries using pip:
+
+```bash
+pip install pandas scikit-learn
+```
+
+### Conclusion
+This comprehensive setup allows you to monitor water quality in real-time and apply machine learning for contamination prediction effectively. Feel free to modify these templates according to your specific project requirements and configurations. If you encounter any issues or need further assistance, don’t hesitate to ask!

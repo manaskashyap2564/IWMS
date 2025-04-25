@@ -1,0 +1,90 @@
+#include <ESP8266WiFi.h>  
+#include <DallasTemperature.h>  
+#include <OneWire.h>  
+#include <WiFiClient.h>  
+
+#define ONE_WIRE_BUS D2 // Pin where your DS18B20 is connected  
+
+OneWire oneWire(ONE_WIRE_BUS);  
+DallasTemperature sensors(&oneWire);  
+
+// Sensor analog pins  
+const int pHSensorPin = A0; // pH sensor  
+const int turbiditySensorPin = A1; // turbidity sensor  
+
+// Thingworx API configuration  
+const char* thingworxServer = "thingworx.scetngp.com"; // Your Thingworx server endpoint  
+const char* thingName = "WaterQualityMonitor"; // Name of your Thing created in Thingworx  
+const char* appKey = "YOUR_APP_KEY"; // Your Application Key, replace with yours  
+
+const char* ssid = "YOUR_SSID"; // Wi-Fi credentials  
+const char* password = "YOUR_PASSWORD"; // Wi-Fi credentials  
+
+WiFiServer server(80); // HTTP server  
+
+void setup() {  
+    Serial.begin(115200);  
+    sensors.begin(); // Initialize temperature sensor  
+    
+    // Connect to Wi-Fi  
+    WiFi.begin(ssid, password);  
+    while (WiFi.status() != WL_CONNECTED) {  
+        delay(500);  
+        Serial.print(".");  
+    }  
+    Serial.println("Connected to Wi-Fi");  
+    Serial.print("IP address: ");  
+    Serial.println(WiFi.localIP());  
+}  
+
+void loop() {  
+    // Reading pH Sensor Value  
+    float phValue = analogRead(pHSensorPin);  
+    phValue = map(phValue, 0, 1023, 0, 14); // Assuming range of pH is (0-14)  
+    
+    // Reading Turbidity Sensor Value  
+    float turbidityValue = analogRead(turbiditySensorPin);  
+    
+    // Reading Temperature Value  
+    sensors.requestTemperatures();  
+    float temperature = sensors.getTempCByIndex(0);  
+
+    // Send data to Thingworx  
+    sendToThingworx(phValue, turbidityValue, temperature);  
+    
+    delay(5000); // Update every 5 seconds  
+}  
+
+void sendToThingworx(float phValue, float turbidityValue, float temperature) {  
+    WiFiClient client;  
+
+    if (client.connect(thingworxServer, 80)) {  
+        String postData = String(  
+            "{ \"sender\": {\"name\":\"" + String(thingName) + "\"}, "  
+            "\"properties\": {\"pH\": " + String(phValue) +  
+            ", \"Turbidity\": " + String(turbidityValue) +  
+            ", \"Temperature\": " + String(temperature) + "}}}");  
+
+        client.println("POST /Things/" + String(thingName) + "/Properties HTTP/1.1");  
+        client.println("Host: " + String(thingworxServer));  
+        client.println("Content-Type: application/json");  
+        client.println("Accept: application/json");  
+        client.println("AppKey: " + String(appKey)); // Using AppKey for authentication  
+        client.print("Content-Length: ");  
+        client.println(postData.length());  
+        client.println();  
+        client.println(postData);  
+        
+        // Wait for response  
+        while (client.connected()) {  
+            String line = client.readStringUntil('\n');  
+            if (line.length() == 0) {  
+                break; // End of headers  
+            }  
+        }  
+    } else {  
+        Serial.println("Connection failed");  
+    }  
+
+    client.stop();  
+}

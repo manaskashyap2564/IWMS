@@ -1,0 +1,36 @@
+#include <DallasTemperature.h>  
+#include <OneWire.h>  
+
+#define ONE_WIRE_BUS 2 // Pin for DS18B20  
+
+OneWire oneWire(ONE_WIRE_BUS);  
+DallasTemperature sensors(&oneWire);  
+
+const int pHSensorPin = A0; // pH sensor pin  
+const int turbiditySensorPin = A1; // turbidity sensor pin  
+
+void setup() {  
+    Serial.begin(9600); // Start serial communication  
+    sensors.begin(); // Initialize temperature sensor  
+}  
+
+void loop() {  
+    // Read pH value  
+    float phValue = analogRead(pHSensorPin);  
+    
+    // Read turbidity value  
+    float turbidityValue = analogRead(turbiditySensorPin);  
+
+    // Read temperature value  
+    sensors.requestTemperatures();  
+    float temperature = sensors.getTempCByIndex(0);  
+    
+    // Send data to NodeMCU via Serial  
+    Serial.print(phValue);  
+    Serial.print(",");  
+    Serial.print(turbidityValue);  
+    Serial.print(",");  
+    Serial.println(temperature); // Sends values as CSV  
+
+    delay(5000); // Delay for 5 seconds  
+}

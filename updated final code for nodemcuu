@@ -1,0 +1,88 @@
+#include <ESP8266WiFi.h>  
+#include <WiFiClient.h>  
+
+// Replace with your network credentials  
+const char* ssid = "YOUR_SSID";               // Your WiFi SSID  
+const char* password = "YOUR_PASSWORD";       // Your WiFi Password  
+
+// ThingWorx URL and credentials  
+const char* server = "http://your-thingworx-server.com"; // Replace with the URL of your ThingWorx server, e.g., http://your-thingworx-server.com  
+const char* thingName = "WaterQualityMonitor"; // Name of your Thing  
+const char* serviceName = "ReceiveData";       // Name of the service  
+const char* applicationKey = "ff01c8a0-6a69-47df-b123-871f9166a941"; // Your application key  
+
+// Sensor readings  
+float pH = 7.0; // Example value  
+float turbidity = 5.0; // Example value  
+float temperature = 25.0; // Example value  
+
+void setup() {  
+    Serial.begin(115200);  
+    delay(10);  
+
+    // Connect to WiFi  
+    WiFi.begin(ssid, password);  
+    while (WiFi.status() != WL_CONNECTED) {  
+        delay(500);  
+        Serial.print(".");  
+    }  
+    Serial.println("WiFi connected");  
+}  
+
+void loop() {  
+    // Simulate sensor readings  
+    readSensors();  
+
+    // Send data to ThingWorx  
+    if (sendDataToThingWorx(pH, turbidity, temperature)) {  
+        Serial.println("Data sent successfully");  
+    } else {  
+        Serial.println("Failed to send data");  
+    }  
+
+    // Wait before next reading  
+    delay(60000); // Delay for 1 minute before sending the next set of data  
+}  
+
+void readSensors() {  
+    // Here you would typically read from your sensors  
+    // For example, you can replace this with real sensor reading code  
+    // pH = readPH();  
+    // turbidity = readTurbidity();  
+    // temperature = readTemperature();  
+}  
+
+bool sendDataToThingWorx(float pH, float turbidity, float temperature) {  
+    WiFiClient client;  
+
+    // Create a POST request for ThingWorx  
+    String postData = String("{\"pH\":") + pH +   
+                      String(",\"Turbidity\":") + turbidity +   
+                      String(",\"Temperature\":") + temperature + "}";  
+    
+    if (client.connect(server, 80)) {  
+        // HTTP request  
+        client.println("POST /Thingworx/Things/" + String(thingName) + "/Services/" + String(serviceName) + "?appKey=" + applicationKey + " HTTP/1.1");  
+        client.println("Host: " + String(server));  
+        client.println("Content-Type: application/json");  
+        client.print("Content-Length: ");  
+        client.println(postData.length());  
+        client.println("Connection: close");  
+        client.println(); // End of headers  
+        client.println(postData); // Send JSON payload  
+
+        // Wait for response  
+        while (client.connected() || client.available()) {  
+            if (client.available()) {  
+                String line = client.readStringUntil('\n');  
+                Serial.println(line); // Print the response from ThingWorx (for debugging)  
+            }  
+        }  
+
+        client.stop();  
+        return true; // Successfully sent  
+    } else {  
+        Serial.println("Connection to ThingWorx failed");  
+        return false; // Failed to send  
+    }  
+}
