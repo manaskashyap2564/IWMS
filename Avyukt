@@ -4,7 +4,7 @@ Project overview
 
 The " industrial water quality monitor system" project is designed to ensure that water used in industrial processes meets required quality standards. By deploying IIoT sensors and utilizing machine learning, this system will continuously monitor parameters such as pH, turbidity, and contaminant levels, enabling early detection of quality issues and ensuring compliance with environmental regulations.
 
-Objectives 
+Objectives :
 
 1. Continuous monitoring: Track water quality parameters in real life. 
 2. Early detection: Identify contamination before they impact production or the environment. 
